@@ -1,0 +1,171 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
+  // Further reading:
+  // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
+  // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
+  url      = env("DATABASE_URL")
+}
+
+// Necessary for Next auth
+model Account {
+  id                       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                   String  @db.Uuid
+  type                     String
+  provider                 String
+  providerAccountId        String
+  refresh_token            String? // @db.Text
+  access_token             String? // @db.Text
+  expires_at               Int?
+  token_type               String?
+  scope                    String?
+  id_token                 String? // @db.Text
+  session_state            String?
+  user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refresh_token_expires_in Int?
+
+  @@unique([provider, providerAccountId])
+  @@map("account")
+}
+
+model Session {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionToken String   @unique
+  userId       String   @db.Uuid
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model User {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+
+  @@map("user")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_token")
+}
+
+model Employer {
+  id                  String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                String
+  address1            String
+  address2            String           @default("")
+  city                String
+  state               String
+  postal_code         String
+  country             String
+  province            String           @default("")
+  phone               String
+  phone_ext           String           @default("")
+  primary_contact     EmployerContact?
+  visa_application    VisaApplication  @relation(fields: [visa_application_id], references: [id], onDelete: Cascade)
+  visa_application_id String           @unique @db.Uuid
+
+  @@map("employer")
+}
+
+model EmployerContact {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  last_name   String
+  first_name  String
+  middle_name String   @default("")
+  job_title   String
+  address1    String
+  address2    String   @default("")
+  city        String
+  state       String
+  postal_code String
+  country     String
+  province    String   @default("")
+  phone       String
+  phone_ext   String   @default("")
+  email       String
+  employer    Employer @relation(fields: [employer_id], references: [id], onDelete: Cascade)
+  employer_id String   @unique @db.Uuid
+
+  @@map("employer_contact")
+}
+
+model Agent {
+  id                    String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  last_name             String
+  first_name            String
+  middle_name           String          @default("")
+  address1              String
+  address2              String          @default("")
+  city                  String
+  state                 String
+  postal_code           String
+  country               String
+  province              String          @default("")
+  phone                 String
+  phone_ext             String          @default("")
+  email_address         String
+  lawfirm_name_business String
+  visa_application      VisaApplication @relation(fields: [visa_application_id], references: [id], onDelete: Cascade)
+  visa_application_id   String          @unique @db.Uuid
+}
+
+model Worksite {
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  address1            String
+  address2            String          @default("")
+  city                String
+  county              String          @default("")
+  state               String
+  postal_code         String
+  visa_application    VisaApplication @relation(fields: [visa_application_id], references: [id], onDelete: Cascade)
+  visa_application_id String          @unique @db.Uuid
+
+  @@map("worksite")
+}
+
+model VisaApplication {
+  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  case_number              String    @unique
+  case_status              String
+  received_date            DateTime
+  decision_date            DateTime
+  visa_class               String
+  job_title                String
+  soc_code                 String
+  soc_title                String
+  full_time_position       Boolean
+  begin_date               DateTime
+  end_date                 DateTime
+  total_worker_positions   Int       @default(0)
+  employer                 Employer?
+  agent                    Agent?
+  worksite                 Worksite?
+  wage_rate_of_pay_from    Int       @default(0)
+  wage_rate_of_pay_to      Int       @default(0)
+  wage_unit_of_pay         String
+  prevailing_wage          Int       @default(0)
+  total_worksite_locations Int       @default(0)
+  agree_to_lc_statement    Boolean
+  h_1b_dependent           Boolean
+  willful_violator         Boolean
+
+  @@map("visa_application")
+}
